@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Markdown Generator</title>
+
+  <!-- CSS only in <head> — no JS blocks page render -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f6f8fa;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: #24292f;
+      color: #fff;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    header h1 { font-size: 15px; font-weight: 600; flex: 1; min-width: 120px; }
+
+    .btn {
+      background: #373e47;
+      color: #e6edf3;
+      border: 1px solid #444c56;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn:hover { background: #444c56; }
+    .btn.active { background: #1f6feb; border-color: #388bfd; }
+    .btn.ok { background: #1a7f37; border-color: #2da44e; }
+    .sep { width: 1px; height: 20px; background: #444c56; flex-shrink: 0; }
+
+    .dropdown { position: relative; display: inline-block; }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: calc(100% + 4px);
+      background: #2d333b;
+      border: 1px solid #444c56;
+      border-radius: 6px;
+      overflow: hidden;
+      z-index: 100;
+      min-width: 150px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.3);
+    }
+    .dropdown-menu.open { display: block; }
+    .dropdown-menu button {
+      display: block;
+      width: 100%;
+      padding: 8px 14px;
+      background: none;
+      border: none;
+      color: #e6edf3;
+      font-size: 12px;
+      text-align: left;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .dropdown-menu button:hover { background: #444c56; }
+
+    main { display: flex; flex: 1; overflow: hidden; }
+
+    #editor-pane {
+      width: 50%;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #d0d7de;
+      flex-shrink: 0;
+    }
+
+    .pane-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #656d76;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      background: #f6f8fa;
+      border-bottom: 1px solid #d0d7de;
+      flex-shrink: 0;
+    }
+
+    #editor {
+      flex: 1;
+      border: none;
+      outline: none;
+      resize: none;
+      padding: 20px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 13px;
+      line-height: 1.65;
+      background: #fff;
+      color: #24292f;
+      tab-size: 2;
+    }
+
+    #preview-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #preview {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 32px;
+      background: #fff;
+      color: #24292f;
+    }
+
+    #divider {
+      width: 5px;
+      background: #d0d7de;
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background .15s;
+    }
+    #divider:hover, #divider.drag { background: #0969da; }
+
+    /* markdown styles */
+    #preview h1,#preview h2,#preview h3,
+    #preview h4,#preview h5,#preview h6 {
+      margin: 24px 0 12px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    #preview h1 { font-size: 2em;   border-bottom: 1px solid #d0d7de; padding-bottom: 8px; }
+    #preview h2 { font-size: 1.5em; border-bottom: 1px solid #d0d7de; padding-bottom: 6px; }
+    #preview h3 { font-size: 1.25em; }
+    #preview p  { margin-bottom: 14px; line-height: 1.75; }
+    #preview ul, #preview ol { margin-bottom: 14px; padding-left: 28px; }
+    #preview li { margin-bottom: 4px; line-height: 1.65; }
+    #preview blockquote {
+      border-left: 4px solid #d0d7de;
+      margin: 0 0 14px;
+      padding: 6px 16px;
+      color: #656d76;
+      background: #f6f8fa;
+      border-radius: 0 4px 4px 0;
+    }
+    #preview code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 85%;
+      background: rgba(175,184,193,.2);
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+    #preview pre {
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      margin-bottom: 16px;
+    }
+    #preview pre code { background: none; padding: 0; font-size: 13px; line-height: 1.6; }
+    #preview table { border-collapse: collapse; width: 100%; margin-bottom: 16px; }
+    #preview th, #preview td { border: 1px solid #d0d7de; padding: 8px 12px; text-align: left; }
+    #preview th { background: #f6f8fa; font-weight: 600; }
+    #preview tr:nth-child(even) td { background: #f6f8fa; }
+    #preview hr { border: none; border-top: 2px solid #d0d7de; margin: 24px 0; }
+    #preview a { color: #0969da; text-decoration: none; }
+    #preview a:hover { text-decoration: underline; }
+    #preview img { max-width: 100%; border-radius: 6px; }
+
+    .mermaid-wrap {
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+      text-align: center;
+      overflow-x: auto;
+    }
+    .mermaid-error {
+      color: #cf222e;
+      font-size: 13px;
+      font-family: monospace;
+    }
+
+    .math-block { text-align: center; padding: 10px 0; margin-bottom: 14px; overflow-x: auto; }
+
+    #statusbar {
+      padding: 3px 16px;
+      font-size: 11px;
+      color: #656d76;
+      background: #f6f8fa;
+      border-top: 1px solid #d0d7de;
+      display: flex;
+      gap: 20px;
+      flex-shrink: 0;
+    }
+
+    body.preview-only #editor-pane { display: none; }
+    body.preview-only #divider     { display: none; }
+    body.preview-only #preview     { max-width: 800px; margin: 0 auto; }
+
+    /* loading overlay */
+    #loading {
+      position: fixed; inset: 0;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #656d76;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading">Loading libraries…</div>
+
+<header>
+  <h1>Markdown Generator</h1>
+  <button class="btn" onclick="insert('eq-inline')">∑ Inline eq</button>
+  <button class="btn" onclick="insert('eq-block')">∫ Block eq</button>
+  <button class="btn" onclick="insert('mermaid-flow')">⬡ Flowchart</button>
+  <button class="btn" onclick="insert('mermaid-seq')">↔ Sequence</button>
+  <button class="btn" onclick="insert('mermaid-gantt')">▦ Gantt</button>
+  <button class="btn" onclick="insert('code')">&lt;/&gt; Code</button>
+  <button class="btn" onclick="insert('table')">⊞ Table</button>
+  <div class="sep"></div>
+  <button class="btn" id="btn-preview" onclick="togglePreview()">Preview only</button>
+  <button class="btn" id="btn-copy"    onclick="copyMd()">Copy MD</button>
+  <div class="dropdown" id="dl-dropdown">
+    <button class="btn" onclick="toggleDownloadMenu()">↓ Download ▾</button>
+    <div class="dropdown-menu" id="dl-menu">
+      <button onclick="downloadMd();  closeDownloadMenu()">Markdown (.md)</button>
+      <button onclick="downloadPdf(); closeDownloadMenu()">PDF (.pdf)</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="editor-pane">
+    <div class="pane-label">Editor</div>
+    <textarea id="editor" spellcheck="false"></textarea>
+  </div>
+  <div id="divider"></div>
+  <div id="preview-pane">
+    <div class="pane-label">Preview</div>
+    <div id="preview"></div>
+  </div>
+</main>
+
+<div id="statusbar">
+  <span id="sw">0 words</span>
+  <span id="sl">0 lines</span>
+  <span id="sc">0 chars</span>
+</div>
+
+<!-- ── ALL JS at bottom so DOM exists and scripts run in order ── -->
+<script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+/* All CDN scripts above have already executed synchronously by this point. */
+
+/* ── Init libraries ── */
+mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
+
+const mdRenderer = new marked.Renderer();
+
+mdRenderer.code = function (code, lang) {
+  if (lang === 'mermaid') {
+    /* Return a placeholder; diagram is rendered after innerHTML is set */
+    return '<div class="mermaid-wrap"><div class="mermaid">' + code + '</div></div>';
+  }
+  if (lang && hljs.getLanguage(lang)) {
+    const hl = hljs.highlight(code, { language: lang }).value;
+    return '<pre><code class="hljs language-' + lang + '">' + hl + '</code></pre>';
+  }
+  return '<pre><code>' + escHtml(code) + '</code></pre>';
+};
+
+marked.setOptions({ renderer: mdRenderer, gfm: true, breaks: true });
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ── Render ── */
+let renderTimer = null;
+
+function scheduleRender() {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(doRender, 300);
+}
+
+async function doRender() {
+  const src  = document.getElementById('editor').value;
+  const pane = document.getElementById('preview');
+
+  try {
+    /* 1. Protect math from marked */
+    const stash = [];
+    const safe = src
+      .replace(/\$\$([\s\S]*?)\$\$/g, (_, expr) => { stash.push({ block: true,  expr }); return '\x02M' + (stash.length-1) + '\x03'; })
+      .replace(/\$([^\n$`\\]+?)\$/g,  (_, expr) => { stash.push({ block: false, expr }); return '\x02M' + (stash.length-1) + '\x03'; });
+
+    /* 2. Parse markdown */
+    let html = marked.parse(safe);
+
+    /* 3. Restore math as KaTeX */
+    html = html.replace(/\x02M(\d+)\x03/g, (_, i) => {
+      const { block, expr } = stash[+i];
+      try {
+        return block
+          ? '<div class="math-block">' + katex.renderToString(expr, { displayMode: true, throwOnError: false }) + '</div>'
+          : katex.renderToString(expr, { throwOnError: false });
+      } catch { return block ? '<div class="math-block">[math error]</div>' : '[math error]'; }
+    });
+
+    /* 4. Write HTML */
+    pane.innerHTML = html;
+
+    /* 5. Render Mermaid diagrams */
+    const diagrams = pane.querySelectorAll('.mermaid');
+    for (const el of diagrams) {
+      const code = el.textContent.trim();
+      const id   = 'mg-' + Math.random().toString(36).slice(2);
+      try {
+        const { svg } = await mermaid.render(id, code);
+        el.innerHTML = svg;
+      } catch (err) {
+        el.innerHTML = '<p class="mermaid-error">Diagram error: ' + escHtml(String(err)) + '</p>';
+      }
+    }
+
+  } catch (err) {
+    pane.innerHTML = '<pre style="color:#cf222e;padding:16px">Render error:\n' + escHtml(String(err)) + '</pre>';
+  }
+
+  /* 6. Stats */
+  const words = src.trim() ? src.trim().split(/\s+/).length : 0;
+  document.getElementById('sw').textContent = words + ' words';
+  document.getElementById('sl').textContent = src.split('\n').length + ' lines';
+  document.getElementById('sc').textContent = src.length + ' chars';
+}
+
+/* ── Snippets ── */
+const SNIPS = {
+  'eq-inline':    ' $E = mc^2$ ',
+  'eq-block':     '\n$$\n\\sum_{n=1}^{\\infty} \\frac{1}{n^2} = \\frac{\\pi^2}{6}\n$$\n',
+  'mermaid-flow': '\n```mermaid\nflowchart TD\n    A[Start] --> B{Decision?}\n    B -- Yes --> C[Action]\n    B -- No  --> D[Other]\n    C --> E[End]\n    D --> E\n```\n',
+  'mermaid-seq':  '\n```mermaid\nsequenceDiagram\n    Alice->>Bob: Hello!\n    Bob-->>Alice: Hi there!\n```\n',
+  'mermaid-gantt':'\n```mermaid\ngantt\n    title Schedule\n    dateFormat YYYY-MM-DD\n    section Phase 1\n    Research :a1, 2025-01-01, 14d\n    Design   :after a1, 10d\n```\n',
+  'code':         '\n```python\ndef hello(name):\n    print(f"Hello, {name}!")\n```\n',
+  'table':        '\n| A | B | C |\n|---|---|---|\n| 1 | 2 | 3 |\n| 4 | 5 | 6 |\n',
+};
+
+function insert(key) {
+  const el = document.getElementById('editor');
+  const s  = el.selectionStart;
+  const sn = SNIPS[key];
+  el.value = el.value.slice(0, s) + sn + el.value.slice(el.selectionEnd);
+  el.selectionStart = el.selectionEnd = s + sn.length;
+  el.focus();
+  scheduleRender();
+}
+
+/* ── Toolbar actions ── */
+function togglePreview() {
+  const on  = document.body.classList.toggle('preview-only');
+  const btn = document.getElementById('btn-preview');
+  btn.textContent = on ? 'Split view' : 'Preview only';
+  btn.classList.toggle('active', on);
+}
+
+function copyMd() {
+  navigator.clipboard.writeText(document.getElementById('editor').value).then(() => {
+    const b = document.getElementById('btn-copy');
+    b.textContent = 'Copied!';
+    b.classList.add('ok');
+    setTimeout(() => { b.textContent = 'Copy MD'; b.classList.remove('ok'); }, 2000);
+  });
+}
+
+function toggleDownloadMenu() {
+  document.getElementById('dl-menu').classList.toggle('open');
+}
+function closeDownloadMenu() {
+  document.getElementById('dl-menu').classList.remove('open');
+}
+document.addEventListener('click', e => {
+  if (!document.getElementById('dl-dropdown').contains(e.target)) closeDownloadMenu();
+});
+
+function downloadMd() {
+  const a   = document.createElement('a');
+  a.href    = URL.createObjectURL(new Blob([document.getElementById('editor').value], { type: 'text/markdown' }));
+  a.download = 'document.md';
+  a.click();
+}
+
+function downloadPdf() {
+  html2pdf()
+    .set({
+      margin:     [12, 15],
+      filename:   'document.pdf',
+      image:      { type: 'jpeg', quality: 0.98 },
+      html2canvas:{ scale: 2, useCORS: true },
+      jsPDF:      { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    })
+    .from(document.getElementById('preview'))
+    .save();
+}
+
+/* ── Resizable divider ── */
+const divEl   = document.getElementById('divider');
+const edPane  = document.getElementById('editor-pane');
+let   dragging = false;
+
+divEl.addEventListener('mousedown', e => { dragging = true; divEl.classList.add('drag'); e.preventDefault(); });
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const r   = document.querySelector('main').getBoundingClientRect();
+  const pct = ((e.clientX - r.left) / r.width) * 100;
+  edPane.style.width = Math.min(80, Math.max(20, pct)) + '%';
+});
+document.addEventListener('mouseup', () => { dragging = false; divEl.classList.remove('drag'); });
+
+/* ── Tab key ── */
+document.getElementById('editor').addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  e.preventDefault();
+  const el = e.target, s = el.selectionStart;
+  el.value = el.value.slice(0, s) + '  ' + el.value.slice(el.selectionEnd);
+  el.selectionStart = el.selectionEnd = s + 2;
+});
+
+/* ── Live update ── */
+document.getElementById('editor').addEventListener('input', scheduleRender);
+
+/* ── Default content ── */
+document.getElementById('editor').value = `# Markdown Generator
+
+Write **bold**, *italic*, or \`inline code\` easily.
+
+## Equations
+
+Inline: $a^2 + b^2 = c^2$
+
+Block:
+
+$$
+\\sum_{n=1}^{\\infty} \\frac{1}{n^2} = \\frac{\\pi^2}{6}
+$$
+
+## Mermaid Diagram
+
+\`\`\`mermaid
+flowchart LR
+    Markdown --> Parser
+    Parser --> HTML
+    HTML --> Preview
+\`\`\`
+
+## Code Block
+
+\`\`\`python
+def fib(n):
+    a, b = 0, 1
+    for _ in range(n):
+        a, b = b, a + b
+    return a
+\`\`\`
+
+## Image
+
+![Placeholder image](https://raw.githubusercontent.com/leo-bonacini/markdown_generator/main/images/placeholder.svg)
+
+## Table
+
+| Feature     | Status |
+|-------------|--------|
+| Equations   | ✅     |
+| Mermaid     | ✅     |
+| Code blocks | ✅     |
+| Tables      | ✅     |
+| Images      | ✅     |
+
+> Use the toolbar buttons above to insert snippets instantly.
+`;
+
+/* ── Hide loading screen and render ── */
+document.getElementById('loading').style.display = 'none';
+doRender();
+</script>
+</body>
+</html>
