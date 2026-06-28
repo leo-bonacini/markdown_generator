@@ -1,6 +1,8 @@
 # Markdown Generator
 
-A browser-based Markdown editor with live preview, equation rendering, diagram support, and export options. No installation required — open `index.html` and start writing.
+A browser-based Markdown editor with live preview, equation rendering, diagram support, and export options. No installation required, open `index.html` and start writing.
+
+[View on GitHub](https://github.com/leo-bonacini/markdown_generator)
 
 ![Preview](https://raw.githubusercontent.com/leo-bonacini/markdown_generator/main/images/placeholder.svg)
 
