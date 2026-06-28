@@ -42,7 +42,3 @@ A browser-based Markdown editor with live preview, equation rendering, diagram s
 * Mermaid for diagrams
 * Highlight.js for code syntax highlighting
 * html2pdf.js for PDF export
-
-## License
-
-MIT
