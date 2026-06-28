@@ -4,8 +4,6 @@ A browser-based Markdown editor with live preview, equation rendering, diagram s
 
 [View on GitHub](https://github.com/leo-bonacini/markdown_generator) | [Live Page](https://leo-bonacini.github.io/markdown_generator/)
 
-![Preview](https://raw.githubusercontent.com/leo-bonacini/markdown_generator/main/images/placeholder.svg)
-
 ## Features
 
 * Live split-pane preview as you type
