@@ -268,6 +268,7 @@
   <span id="sw">0 words</span>
   <span id="sl">0 lines</span>
   <span id="sc">0 chars</span>
+  <span id="visits" style="margin-left:auto">Visits: &mdash;</span>
 </div>
 
 <!-- ── ALL JS at bottom so DOM exists and scripts run in order ── -->
@@ -510,6 +511,12 @@ def fib(n):
 /* ── Hide loading screen and render ── */
 document.getElementById('loading').style.display = 'none';
 doRender();
+
+/* ── Visitor counter ── */
+fetch('https://abacus.jasoncameron.dev/hit/markdown-generator-leobonacini/visits')
+  .then(r => r.json())
+  .then(data => { document.getElementById('visits').textContent = 'Visits: ' + data.value; })
+  .catch(() => { document.getElementById('visits').textContent = 'Visits: n/a'; });
 </script>
 </body>
 </html>
